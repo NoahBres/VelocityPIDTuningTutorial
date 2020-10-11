@@ -49,7 +49,8 @@ integrate this with an existing project, please follow the installation instruct
 You can ignore the "Advanced" and "Development" section of the installation guide.
 
 Then, copy over the [teamcode/VeloPIDTuner.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/VeloPIDTuner.java)
-file provided in this repo.
+file provided into your own `Teamcode` folder
 
 ## Instructions
 
+## Mechanically linked motors
