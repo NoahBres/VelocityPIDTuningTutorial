@@ -258,7 +258,7 @@ public class VeloPIDTuner extends LinearOpMode {
     private void setPIDFCoefficients(List<DcMotorEx> motors, PIDFCoefficients coefficients) {
         for (DcMotorEx motor : motors) {
             motor.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(
-                    coefficients.p, coefficients.i, coefficients.d, getMotorVelocityF()
+                    coefficients.p, coefficients.i, coefficients.d, coefficients.f
             ));
         }
     }
