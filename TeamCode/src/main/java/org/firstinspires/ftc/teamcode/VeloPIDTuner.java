@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -29,13 +30,13 @@ public class VeloPIDTuner extends LinearOpMode {
     // alphabetical order. Thus, we preserve the actual order of the process
     public static double STATE1_RAMPING_UP_DURATION = 3.5;
 
-    // This is set to 80%, explain why
-    public static double STATE1_RAMPING_UP_MAX_SPEED = 0.9 * MOTOR_MAX_RPM;
+    // This is set to 95%, explain why
+    public static double STATE1_RAMPING_UP_MAX_SPEED = 0.95 * MOTOR_MAX_RPM;
     public static double STATE2_COASTING_1_DURATION = 4;
-    public static double STATE3_RAMPING_DOWN_DURATION = 3;
+    public static double STATE3_RAMPING_DOWN_DURATION = 2;
     // This is set to 30%, arbitrary
     public static double STATE3_RAMPING_DOWN_MIN_SPEED = 0.3 * MOTOR_MAX_RPM;
-    public static double STATE4_COASTING_2_DURATION = 4;
+    public static double STATE4_COASTING_2_DURATION = 2;
     public static double STATE5_RANDOM_1_DURATION = 2;
     public static double STATE6_RANDOM_2_DURATION = 2;
     public static double STATE7_RANDOM_3_DURATION = 2;
@@ -66,6 +67,8 @@ public class VeloPIDTuner extends LinearOpMode {
     private double currentTargetVelo = 0.0;
 
     private FtcDashboard dashboard = FtcDashboard.getInstance();
+
+    private VoltageSensor batteryVoltageSensor;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -98,9 +101,10 @@ public class VeloPIDTuner extends LinearOpMode {
             motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
 
-        telemetry = new MultipleTelemetry(telemetry, dashboard.getTelemetry());
-
+        batteryVoltageSensor = hardwareMap.voltageSensor.iterator().next();
         setPIDFCoefficients(motors, MOTOR_VELO_PID);
+
+        telemetry = new MultipleTelemetry(telemetry, dashboard.getTelemetry());
 
         telemetry.addLine("Ready!");
         telemetry.update();
@@ -120,7 +124,7 @@ public class VeloPIDTuner extends LinearOpMode {
             switch (currentState) {
                 case RAMPING_UP:
                     double progress1 = timer.seconds() / STATE1_RAMPING_UP_DURATION;
-                    double target1 = progress1 * STATE1_RAMPING_UP_MAX_SPEED;
+                    double target1 = progress1 * (STATE1_RAMPING_UP_MAX_SPEED - STATE3_RAMPING_DOWN_MIN_SPEED) + STATE3_RAMPING_DOWN_MIN_SPEED;
 
                     currentTargetVelo = rpmToTicksPerSecond(target1);
                     setVelocity(motors, currentTargetVelo);
@@ -165,13 +169,18 @@ public class VeloPIDTuner extends LinearOpMode {
                     currentTargetVelo = rpmToTicksPerSecond(STATE3_RAMPING_DOWN_MIN_SPEED);
 
                     if (timer.seconds() >= STATE4_COASTING_2_DURATION) {
+//                        currentState = State.RAMPING_UP;
                         currentState = State.RANDOM_1;
                         timer.reset();
                     }
                     break;
                 case RANDOM_1:
                     if (lastState != State.RANDOM_1) {
-                        currentTargetVelo = Math.random() * (STATE1_RAMPING_UP_MAX_SPEED - STATE3_RAMPING_DOWN_MIN_SPEED) + STATE3_RAMPING_DOWN_MIN_SPEED;
+                        currentTargetVelo = rpmToTicksPerSecond(
+                                Math.random() *
+                                        (STATE1_RAMPING_UP_MAX_SPEED - STATE3_RAMPING_DOWN_MIN_SPEED)
+                                        + STATE3_RAMPING_DOWN_MIN_SPEED
+                        );
                         setVelocity(motors, currentTargetVelo);
 
                         lastState = State.RANDOM_1;
@@ -184,7 +193,11 @@ public class VeloPIDTuner extends LinearOpMode {
                     break;
                 case RANDOM_2:
                     if (lastState != State.RANDOM_2) {
-                        currentTargetVelo = Math.random() * (STATE1_RAMPING_UP_MAX_SPEED - STATE3_RAMPING_DOWN_MIN_SPEED) + STATE3_RAMPING_DOWN_MIN_SPEED;
+                        currentTargetVelo = rpmToTicksPerSecond(
+                                Math.random() *
+                                        (STATE1_RAMPING_UP_MAX_SPEED - STATE3_RAMPING_DOWN_MIN_SPEED)
+                                        + STATE3_RAMPING_DOWN_MIN_SPEED
+                        );
                         setVelocity(motors, currentTargetVelo);
 
                         lastState = State.RANDOM_2;
@@ -197,7 +210,11 @@ public class VeloPIDTuner extends LinearOpMode {
                     break;
                 case RANDOM_3:
                     if (lastState != State.RANDOM_3) {
-                        currentTargetVelo = Math.random() * (STATE1_RAMPING_UP_MAX_SPEED - STATE3_RAMPING_DOWN_MIN_SPEED) + STATE3_RAMPING_DOWN_MIN_SPEED;
+                        currentTargetVelo = rpmToTicksPerSecond(
+                                Math.random() *
+                                        (STATE1_RAMPING_UP_MAX_SPEED - STATE3_RAMPING_DOWN_MIN_SPEED)
+                                        + STATE3_RAMPING_DOWN_MIN_SPEED
+                        );
                         setVelocity(motors, currentTargetVelo);
 
                         lastState = State.RANDOM_3;
@@ -258,7 +275,7 @@ public class VeloPIDTuner extends LinearOpMode {
     private void setPIDFCoefficients(List<DcMotorEx> motors, PIDFCoefficients coefficients) {
         for (DcMotorEx motor : motors) {
             motor.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(
-                    coefficients.p, coefficients.i, coefficients.d, coefficients.f
+                    coefficients.p, coefficients.i, coefficients.d, coefficients.f * 12 / batteryVoltageSensor.getVoltage()
             ));
         }
     }
