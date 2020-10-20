@@ -54,3 +54,8 @@ file provided into your own `Teamcode` folder
 ## Instructions
 
 ## Mechanically linked motors
+
+## Todo
+- Video tutorial
+- mechanically linked
+- simple sample code for just using it
