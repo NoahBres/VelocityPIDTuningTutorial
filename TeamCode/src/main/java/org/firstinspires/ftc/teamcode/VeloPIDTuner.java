@@ -26,16 +26,14 @@ public class VeloPIDTuner extends LinearOpMode {
     public static double MOTOR_MAX_RPM = 435;
     public static double MOTOR_GEAR_RATIO = 1; // output (wheel) speed / input (motor) speed
 
+    public static double TESTING_MAX_SPEED = 0.95 * MOTOR_MAX_RPM;
+    public static double TESTING_MIN_SPEED = 0.3 * MOTOR_MAX_RPM;
+
     // These are prefixed with "STATE1", "STATE2", etc. because Dashboard displays variables in
     // alphabetical order. Thus, we preserve the actual order of the process
     public static double STATE1_RAMPING_UP_DURATION = 3.5;
-
-    // This is set to 95%, explain why
-    public static double STATE1_RAMPING_UP_MAX_SPEED = 0.95 * MOTOR_MAX_RPM;
     public static double STATE2_COASTING_1_DURATION = 4;
     public static double STATE3_RAMPING_DOWN_DURATION = 2;
-    // This is set to 30%, arbitrary
-    public static double STATE3_RAMPING_DOWN_MIN_SPEED = 0.3 * MOTOR_MAX_RPM;
     public static double STATE4_COASTING_2_DURATION = 2;
     public static double STATE5_RANDOM_1_DURATION = 2;
     public static double STATE6_RANDOM_2_DURATION = 2;
@@ -43,11 +41,6 @@ public class VeloPIDTuner extends LinearOpMode {
     public static double STATE8_REST_DURATION = 1;
 
     public static PIDFCoefficients MOTOR_VELO_PID = new PIDFCoefficients(0, 0, 0, getMotorVelocityF());
-
-    private double lastKp = 0.0;
-    private double lastKi = 0.0;
-    private double lastKd = 0.0;
-    private double lastKf = getMotorVelocityF();
 
     enum State {
         RAMPING_UP,
@@ -59,6 +52,11 @@ public class VeloPIDTuner extends LinearOpMode {
         RANDOM_3,
         REST
     }
+
+    private double lastKp = 0.0;
+    private double lastKi = 0.0;
+    private double lastKd = 0.0;
+    private double lastKf = getMotorVelocityF();
 
     private State currentState;
     private State lastState;
@@ -75,34 +73,18 @@ public class VeloPIDTuner extends LinearOpMode {
         // Change my id
         DcMotorEx myMotor = hardwareMap.get(DcMotorEx.class, "flywheelMotor");
 
-        // If you have more motors you'd like to tune at the same time (they should be the same motor),
-        // just declare more DcMotorEx objects
-        // DcMotorEx myMotor2 = hardwareMap.get(DcMotorEx.class, "secondFlywheelMotor");
-
-        List<DcMotorEx> motors = new ArrayList<>(
-                Arrays.asList(
-                        myMotor
-                        // Include your other motors here if you wish to tune them
-                        // myMotor2
-                )
-        );
-
         for (LynxModule module : hardwareMap.getAll(LynxModule.class)) {
             module.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
         }
 
-        for (DcMotorEx motor : motors) {
-            MotorConfigurationType motorConfigurationType = motor.getMotorType().clone();
-            motorConfigurationType.setAchieveableMaxRPMFraction(1.0);
-            motor.setMotorType(motorConfigurationType);
-        }
+        MotorConfigurationType motorConfigurationType = myMotor.getMotorType().clone();
+        motorConfigurationType.setAchieveableMaxRPMFraction(1.0);
+        myMotor.setMotorType(motorConfigurationType);
 
-        for (DcMotorEx motor : motors) {
-            motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        }
+        myMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         batteryVoltageSensor = hardwareMap.voltageSensor.iterator().next();
-        setPIDFCoefficients(motors, MOTOR_VELO_PID);
+        setPIDFCoefficients(myMotor, MOTOR_VELO_PID);
 
         telemetry = new MultipleTelemetry(telemetry, dashboard.getTelemetry());
 
@@ -124,10 +106,10 @@ public class VeloPIDTuner extends LinearOpMode {
             switch (currentState) {
                 case RAMPING_UP:
                     double progress1 = timer.seconds() / STATE1_RAMPING_UP_DURATION;
-                    double target1 = progress1 * (STATE1_RAMPING_UP_MAX_SPEED - STATE3_RAMPING_DOWN_MIN_SPEED) + STATE3_RAMPING_DOWN_MIN_SPEED;
+                    double target1 = progress1 * (TESTING_MAX_SPEED - TESTING_MIN_SPEED) + TESTING_MIN_SPEED;
 
                     currentTargetVelo = rpmToTicksPerSecond(target1);
-                    setVelocity(motors, currentTargetVelo);
+                    setVelocity(myMotor, currentTargetVelo);
 
                     if (progress1 >= 1) {
                         currentState = State.COASTING_1;
@@ -136,8 +118,8 @@ public class VeloPIDTuner extends LinearOpMode {
                     break;
                 case COASTING_1:
                     if (lastState != State.COASTING_1) {
-                        currentTargetVelo = rpmToTicksPerSecond(STATE1_RAMPING_UP_MAX_SPEED);
-                        setVelocity(motors, currentTargetVelo);
+                        currentTargetVelo = rpmToTicksPerSecond(TESTING_MAX_SPEED);
+                        setVelocity(myMotor, currentTargetVelo);
 
                         lastState = State.COASTING_1;
                     }
@@ -149,10 +131,10 @@ public class VeloPIDTuner extends LinearOpMode {
                     break;
                 case RAMPING_DOWN:
                     double progress2 = timer.seconds() / STATE3_RAMPING_DOWN_DURATION;
-                    double target2 = STATE1_RAMPING_UP_MAX_SPEED - progress2 * (STATE1_RAMPING_UP_MAX_SPEED - STATE3_RAMPING_DOWN_MIN_SPEED);
+                    double target2 = TESTING_MAX_SPEED - progress2 * (TESTING_MAX_SPEED - TESTING_MIN_SPEED);
 
                     currentTargetVelo = rpmToTicksPerSecond(target2);
-                    setVelocity(motors, currentTargetVelo);
+                    setVelocity(myMotor, currentTargetVelo);
 
                     if (progress2 >= 1) {
                         currentState = State.COASTING_2;
@@ -161,12 +143,12 @@ public class VeloPIDTuner extends LinearOpMode {
                     break;
                 case COASTING_2:
                     if (lastState != State.COASTING_2) {
-                        setVelocity(motors, rpmToTicksPerSecond(STATE3_RAMPING_DOWN_MIN_SPEED));
+                        setVelocity(myMotor, rpmToTicksPerSecond(TESTING_MIN_SPEED));
 
                         lastState = State.COASTING_2;
                     }
 
-                    currentTargetVelo = rpmToTicksPerSecond(STATE3_RAMPING_DOWN_MIN_SPEED);
+                    currentTargetVelo = rpmToTicksPerSecond(TESTING_MIN_SPEED);
 
                     if (timer.seconds() >= STATE4_COASTING_2_DURATION) {
 //                        currentState = State.RAMPING_UP;
@@ -177,11 +159,9 @@ public class VeloPIDTuner extends LinearOpMode {
                 case RANDOM_1:
                     if (lastState != State.RANDOM_1) {
                         currentTargetVelo = rpmToTicksPerSecond(
-                                Math.random() *
-                                        (STATE1_RAMPING_UP_MAX_SPEED - STATE3_RAMPING_DOWN_MIN_SPEED)
-                                        + STATE3_RAMPING_DOWN_MIN_SPEED
+                                Math.random() * (TESTING_MAX_SPEED - TESTING_MIN_SPEED) + TESTING_MIN_SPEED
                         );
-                        setVelocity(motors, currentTargetVelo);
+                        setVelocity(myMotor, currentTargetVelo);
 
                         lastState = State.RANDOM_1;
                     }
@@ -194,11 +174,9 @@ public class VeloPIDTuner extends LinearOpMode {
                 case RANDOM_2:
                     if (lastState != State.RANDOM_2) {
                         currentTargetVelo = rpmToTicksPerSecond(
-                                Math.random() *
-                                        (STATE1_RAMPING_UP_MAX_SPEED - STATE3_RAMPING_DOWN_MIN_SPEED)
-                                        + STATE3_RAMPING_DOWN_MIN_SPEED
+                                Math.random() * (TESTING_MAX_SPEED - TESTING_MIN_SPEED) + TESTING_MIN_SPEED
                         );
-                        setVelocity(motors, currentTargetVelo);
+                        setVelocity(myMotor, currentTargetVelo);
 
                         lastState = State.RANDOM_2;
                     }
@@ -211,11 +189,9 @@ public class VeloPIDTuner extends LinearOpMode {
                 case RANDOM_3:
                     if (lastState != State.RANDOM_3) {
                         currentTargetVelo = rpmToTicksPerSecond(
-                                Math.random() *
-                                        (STATE1_RAMPING_UP_MAX_SPEED - STATE3_RAMPING_DOWN_MIN_SPEED)
-                                        + STATE3_RAMPING_DOWN_MIN_SPEED
+                                Math.random() * (TESTING_MAX_SPEED - TESTING_MIN_SPEED) + TESTING_MIN_SPEED
                         );
-                        setVelocity(motors, currentTargetVelo);
+                        setVelocity(myMotor, currentTargetVelo);
 
                         lastState = State.RANDOM_3;
                     }
@@ -226,9 +202,9 @@ public class VeloPIDTuner extends LinearOpMode {
                     }
                     break;
                 case REST:
-                    if(lastState != State.REST) {
+                    if (lastState != State.REST) {
                         currentTargetVelo = 0;
-                        setVelocity(motors, currentTargetVelo);
+                        setVelocity(myMotor, currentTargetVelo);
 
                         lastState = State.REST;
                     }
@@ -240,10 +216,10 @@ public class VeloPIDTuner extends LinearOpMode {
                     break;
             }
 
-            printVelocites(motors, currentTargetVelo);
+            printVelocites(myMotor, currentTargetVelo);
 
-            if(lastKp != MOTOR_VELO_PID.p || lastKi != MOTOR_VELO_PID.i || lastKd != MOTOR_VELO_PID.d || lastKf != MOTOR_VELO_PID.f) {
-                setPIDFCoefficients(motors, MOTOR_VELO_PID);
+            if (lastKp != MOTOR_VELO_PID.p || lastKi != MOTOR_VELO_PID.i || lastKd != MOTOR_VELO_PID.d || lastKf != MOTOR_VELO_PID.f) {
+                setPIDFCoefficients(myMotor, MOTOR_VELO_PID);
 
                 lastKp = MOTOR_VELO_PID.p;
                 lastKi = MOTOR_VELO_PID.i;
@@ -255,29 +231,23 @@ public class VeloPIDTuner extends LinearOpMode {
         }
     }
 
-    private void printVelocites(List<DcMotorEx> motors, double target) {
+    private void printVelocites(DcMotorEx motor, double target) {
         telemetry.addData("targetVelocity", target);
 
-        for (int i = 0; i < motors.size(); i++) {
-            double motorVelo = motors.get(i).getVelocity();
-            telemetry.addData("velocity" + i, motorVelo);
-            telemetry.addData("error" + i, target - motorVelo);
-        }
+        double motorVelo = motor.getVelocity();
+        telemetry.addData("velocity", motorVelo);
+        telemetry.addData("error", target - motorVelo);
     }
 
-    private void setVelocity(List<DcMotorEx> motors, double power) {
-        for (DcMotorEx motor : motors) {
-            Log.i("power", Double.toString(power));
-            motor.setVelocity(power);
-        }
+    private void setVelocity(DcMotorEx motor, double power) {
+        Log.i("power", Double.toString(power));
+        motor.setVelocity(power);
     }
 
-    private void setPIDFCoefficients(List<DcMotorEx> motors, PIDFCoefficients coefficients) {
-        for (DcMotorEx motor : motors) {
-            motor.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(
-                    coefficients.p, coefficients.i, coefficients.d, coefficients.f * 12 / batteryVoltageSensor.getVoltage()
-            ));
-        }
+    private void setPIDFCoefficients(DcMotorEx motor, PIDFCoefficients coefficients) {
+        motor.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, new PIDFCoefficients(
+                coefficients.p, coefficients.i, coefficients.d, coefficients.f * 12 / batteryVoltageSensor.getVoltage()
+        ));
     }
 
     public static double rpmToTicksPerSecond(double rpm) {
