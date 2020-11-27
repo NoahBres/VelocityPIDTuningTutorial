@@ -10,14 +10,13 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import org.firstinspires.ftc.robotcore.external.StateMachine;
 
 @Config
 @TeleOp
@@ -26,7 +25,7 @@ public class VeloPIDTuner extends LinearOpMode {
     public static double MOTOR_MAX_RPM = 435;
     public static double MOTOR_GEAR_RATIO = 1; // output (wheel) speed / input (motor) speed
 
-    public static double TESTING_MAX_SPEED = 0.95 * MOTOR_MAX_RPM;
+    public static double TESTING_MAX_SPEED = 0.9 * MOTOR_MAX_RPM;
     public static double TESTING_MIN_SPEED = 0.3 * MOTOR_MAX_RPM;
 
     // These are prefixed with "STATE1", "STATE2", etc. because Dashboard displays variables in
@@ -40,7 +39,7 @@ public class VeloPIDTuner extends LinearOpMode {
     public static double STATE7_RANDOM_3_DURATION = 2;
     public static double STATE8_REST_DURATION = 1;
 
-    public static PIDFCoefficients MOTOR_VELO_PID = new PIDFCoefficients(0, 0, 0, getMotorVelocityF());
+    public static PIDFCoefficients MOTOR_VELO_PID = new PIDFCoefficients(15, 0, 2, 12.3);
 
     enum State {
         RAMPING_UP,
@@ -72,6 +71,8 @@ public class VeloPIDTuner extends LinearOpMode {
     public void runOpMode() throws InterruptedException {
         // Change my id
         DcMotorEx myMotor = hardwareMap.get(DcMotorEx.class, "flywheelMotor");
+        myMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        myMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         for (LynxModule module : hardwareMap.getAll(LynxModule.class)) {
             module.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
@@ -216,7 +217,7 @@ public class VeloPIDTuner extends LinearOpMode {
                     break;
             }
 
-            printVelocites(myMotor, currentTargetVelo);
+            printVelocity(myMotor, currentTargetVelo);
 
             if (lastKp != MOTOR_VELO_PID.p || lastKi != MOTOR_VELO_PID.i || lastKd != MOTOR_VELO_PID.d || lastKf != MOTOR_VELO_PID.f) {
                 setPIDFCoefficients(myMotor, MOTOR_VELO_PID);
@@ -231,12 +232,15 @@ public class VeloPIDTuner extends LinearOpMode {
         }
     }
 
-    private void printVelocites(DcMotorEx motor, double target) {
+    private void printVelocity(DcMotorEx motor, double target) {
         telemetry.addData("targetVelocity", target);
 
         double motorVelo = motor.getVelocity();
         telemetry.addData("velocity", motorVelo);
         telemetry.addData("error", target - motorVelo);
+
+        telemetry.addData("upperBound", rpmToTicksPerSecond(TESTING_MAX_SPEED * 1.15));
+        telemetry.addData("lowerBound", 0);
     }
 
     private void setVelocity(DcMotorEx motor, double power) {
