@@ -4,24 +4,25 @@ import android.util.Log;
 
 import com.acmerobotics.roadrunner.control.PIDCoefficients;
 import com.acmerobotics.roadrunner.control.PIDFController;
+import com.acmerobotics.roadrunner.util.NanoClock;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.MovingStatistics;
 
 public class VelocityPIDFController {
-    private static final double ACCEL_TIMEOUT = 0.1;
-    private static final double EPSILON = 1e-6;
+    private static final int ACCEL_SAMPLES = 10;
+    private static final double VELOCITY_EPSILON = 20 + 1e-6;
 
     private PIDFController controller;
 
-    private ElapsedTime accelTimeoutTimer;
-
     private MovingStatistics accelSamples;
+
+    private NanoClock clock;
 
     private double lastPosition;
     private double lastVelocity;
+    private double lastUpdateTimestamp;
 
-    private VelocityPIDFController() {
-    }
+    private VelocityPIDFController() {}
 
     public VelocityPIDFController(PIDCoefficients pid) {
         this(pid, 0.0, 0.0, 0.0);
@@ -37,8 +38,9 @@ public class VelocityPIDFController {
 
     public VelocityPIDFController(PIDCoefficients pid, double kV, double kA, double kStatic) {
         controller = new PIDFController(pid, kV, kA, kStatic);
-        accelTimeoutTimer = new ElapsedTime();
-        accelSamples = new MovingStatistics(5);
+        accelSamples = new MovingStatistics(ACCEL_SAMPLES);
+        clock = NanoClock.system();
+        reset();
     }
 
     public void setTargetAcceleration(double acceleration) {
@@ -52,34 +54,36 @@ public class VelocityPIDFController {
 
     private double calculateAccel(double measuredPosition, double measuredVelocity) {
         double dx = measuredPosition - lastPosition;
-        if (dx != 0.0) {
+        if (dx != 0.0 && Math.abs(measuredVelocity - lastVelocity) > VELOCITY_EPSILON) {
             double accel = (measuredVelocity * measuredVelocity - lastVelocity * lastVelocity) / (2.0 * dx);
 
-            // This is to avoid reporting a zero acceleration when the velocity does not change due to the internal
-            // velocity measurement loop potentially running less frequently than our control loop
-            if (Math.abs(measuredVelocity - lastVelocity) > EPSILON || accelTimeoutTimer.seconds() > ACCEL_TIMEOUT) {
-                lastPosition = measuredPosition;
-                lastVelocity = measuredVelocity;
-
+            for (int i = 0; i < ACCEL_SAMPLES; i++) {
                 accelSamples.add(accel);
-                accelTimeoutTimer.reset();
             }
-            return accelSamples.getMean();
         } else {
-            return 0.0;
+            double dt = clock.seconds() - lastUpdateTimestamp;
+            double accel = (measuredVelocity - lastVelocity) / dt;
+            accelSamples.add(accel);
         }
+
+        return accelSamples.getMean();
     }
 
     public double update(double measuredPosition, double measuredVelocity) {
         double accel = calculateAccel(measuredPosition, measuredVelocity);
-        Log.i("accel", Double.toString(accel));
+
+        lastPosition = measuredPosition;
+        lastVelocity = measuredVelocity;
+        lastUpdateTimestamp = clock.seconds();
 
         return controller.update(measuredVelocity, accel);
     }
 
     public void reset() {
         controller.reset();
-        accelTimeoutTimer = new ElapsedTime();
-        accelSamples.clear();
+
+        lastPosition = 0.0;
+        lastPosition = 0.0;
+        lastUpdateTimestamp = clock.seconds();
     }
 }
