@@ -16,17 +16,15 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 @Config
 @TeleOp
 public class LinkedMotorTuner extends LinearOpMode {
-//    public static PIDCoefficients MOTOR_VELO_PID = new PIDCoefficients(0.0061, 0, 0.000035);
-    public static PIDCoefficients MOTOR_VELO_PID = new PIDCoefficients(0.001, 0, 0.00001);
+    public static PIDCoefficients MOTOR_VELO_PID = new PIDCoefficients(0, 0, 0);
 
-    public static double kV = 0.00034;
-    //    public static double kV = 1 / rpmToTicksPerSecond(5400);
-    public static double kA = 0.00015;
+    public static double kV = 1 / TuningController.rpmToTicksPerSecond(TuningController.MOTOR_MAX_RPM);
+    public static double kA = 0;
     public static double kStatic = 0;
 
-    private FtcDashboard dashboard = FtcDashboard.getInstance();
+    private final FtcDashboard dashboard = FtcDashboard.getInstance();
 
-    private ElapsedTime veloTimer = new ElapsedTime();
+    private final ElapsedTime veloTimer = new ElapsedTime();
 
     @Override
     public void runOpMode() throws InterruptedException {
