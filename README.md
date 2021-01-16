@@ -163,5 +163,13 @@ If you're using the built-in PID:
 If you're using mechanically linked motors:
 - [SampleLinkedPIDUse.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/SampleLinkedPIDUse.java)
 
-## Todo
-- Video tutorial
+## Temporary Video Tutorials
+
+These are informal videos. They're not edited and were improvised. Apologies for the poor quality.
+Hopefully, polished videos will be made in the future.
+
+### Built in PID
+[![Watch built in PID video](https://img.youtube.com/vi/NiM_WqIV0vU/0.jpg)](https://www.youtube.com/watch?v=NiM_WqIV0vU)
+
+### Linked Motor PID
+[![Watch built in PID video](https://img.youtube.com/vi/S-6iRnv2LWU/0.jpg)](https://www.youtube.com/watch?v=S-6iRnv2LWU)
