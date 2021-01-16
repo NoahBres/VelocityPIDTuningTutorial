@@ -112,17 +112,25 @@ into your own project. The file will be located under `FtcRobotController/src/ma
 Alternatively, follow the [official FTC Dashboard instructions](https://acmerobotics.github.io/ftc-dashboard/gettingstarted).
 
 If you're using the built-in PID, copy over the following files into your own `TeamCode` folder:
-    - [VeloPIDTuner.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/VeloPIDTuner.java)
-    - [TuningController.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/TuningController.java)
+- [VeloPIDTuner.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/VeloPIDTuner.java)
+- [TuningController.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/TuningController.java)
 
 If you're using two mechanically linked motors, copy over the following files into your own
 `TeamCode` folder:
-    - [LinkedMotorTuner.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/LinkedMotorTuner.java)
-    - [TuningController.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/TuningController.java)
+- [LinkedMotorTuner.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/LinkedMotorTuner.java)
+- [TuningController.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/TuningController.java)
 
 ## Instructions
 
 ## Mechanically linked motors
+
+## Sample Usage
+
+If you're using the built-in PID:
+- [SamplePIDUse.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/SamplePIDUse.java)
+
+If you're using mechanically linked motors:
+- [SampleLinkedPIDUse.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/SampleLinkedPIDUse.java)
 
 ## Todo
 - Video tutorial
