@@ -120,9 +120,40 @@ If you're using two mechanically linked motors, copy over the following files in
 - [LinkedMotorTuner.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/LinkedMotorTuner.java)
 - [TuningController.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/TuningController.java)
 
-## Instructions
+## Instructions - Built In PID
 
-## Mechanically linked motors
+1. Open up the `TuningController.java` file. Adjust the `MOTOR_TICKS_PER_REV`, `MOTOR_MAX_RPM`, and
+`MOTOR_GEAR_RATIO` to match your setup. Your motor manufacturer should list these specs.
+2. If you would like to change the max and minimum speed, adjust the `TESTING_MAX_SPEED` and
+`TESTING_MIN_SPEED` accordingly. 
+3. Before you begin tuning, start the RC phone and open up Dashboard. Connect to the RC phone's wifi
+network. The password to the network is located in the Program and Manage menu.
+4. In your browser, navigate to `192.168.49.1:8080/dash` with a phone RC or `192.168.43.1:8080/dash`
+with a Control Hub.
+5. Run the `VeloPIDTuner` opmode. This will command your flywheel to ramp up its velocity, coast,
+ramp it back down, and suddenly change to 3 different setpoints.
+6. Adjust your PIDF gains to try and match `targetVelocity` with `velocity`
+    1. Raise kF until `velocity` reaches `targetVelocity`
+    2. Raise kP to reduce phase lag
+    3. Raise kD to dampen oscillations
+
+## Instructions - Mechanically Linked
+
+1. Open up the `TuningController.java` file. Adjust the `MOTOR_TICKS_PER_REV`, `MOTOR_MAX_RPM`, and
+`MOTOR_GEAR_RATIO` to match your setup. Your motor manufacturer should list these specs.
+2. If you would like to change the max and minimum speed, adjust the `TESTING_MAX_SPEED` and
+`TESTING_MIN_SPEED` accordingly. 
+3. Before you begin tuning, start the RC phone and open up Dashboard. Connect to the RC phone's wifi
+network. The password to the network is located in the Program and Manage menu.
+4. In your browser, navigate to `192.168.49.1:8080/dash` with a phone RC or `192.168.43.1:8080/dash`
+with a Control Hub.
+5. Run the `LinkedMotorTuner` opmode. This will command your flywheel to ramp up its velocity, coast,
+ramp it back down, and suddenly change to 3 different setpoints.
+6. Adjust your PIDF gains to try and match `targetVelocity` with `velocity`
+    1. Raise kF until `velocity` reaches `targetVelocity`
+    2. Raise kA to reduce the phase lag during acceleration
+    2. Raise kP to turn on error correction and reduce any further error
+    3. Raise kD to dampen any oscillations
 
 ## Sample Usage
 
@@ -134,5 +165,3 @@ If you're using mechanically linked motors:
 
 ## Todo
 - Video tutorial
-- mechanically linked
-- simple sample code for just using it
