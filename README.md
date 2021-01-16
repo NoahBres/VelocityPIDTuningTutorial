@@ -12,7 +12,7 @@ applies to a wide range of actions but we'll take a look at velocity PID control
 relevant for this year's game. 
 
 So say you have a goBILDA 3:1 1620RPM motor powering a flywheel. You want that flywheel to spin at a
-constant speed to ensure consistency between your shots. So you run a motor.setPower(0.5) which
+constant speed to ensure consistency between your shots. So you run a `motor.setPower(0.5)`` which
 sends 50% of 12v to the motor. The motor is getting a 6v signal (technically not true because of PWM
 but that's another topic). The motor should be running at 810 RPM right? That's 50% of 1620RPM.
 Chances are, it's not actually running at this speed. There are a number of reasons why: motors have
@@ -35,21 +35,90 @@ for free! The hub uses the internal velocity PID whenever you call
 `motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER)`. Whenever you call `setPower()` while the motor
 is in the `RUN_USING_ENCODER`, it actually pipes that into a `setVelocity(ticks per second)`
 function. However, each motor comes with a set of default PID gains set in the FTC SDK. These gains
-are probably not optimal. They're tuned for low loads. The default gains will probably have a slow
-spin up time if you use them with a flywheel. If you want the best response/behavior, you're going
-to want to set your own PID gains. Finding the set of gains that works for you is called "tuning".
+are probably not optimal. They're not tuned for your specific system in mind. They'll be okay for
+most people. However, if you want the best response/behavior, you're going to want to set your own
+PID gains. Finding the set of gains that works for you is called "tuning".
 
 ## Installation
 
-This tuning process utilizes a library called FTC Dashboard. FTC Dashboard allows us to live graph
-the target and set point, giving us a much more intuitive understanding of the tuning process.
+This tuning process utilizes three libraries: FTC Dashboard, Jotai, and Road Runner. FTC Dashboard
+allows us to live graph the target and set point, giving us a much more intuitive understanding of
+the tuning process. Jotai is a helper library that allows for simple Finite State Machine
+construction. You need not be concerned about this. We use Road Runner because it comes with a PIDF
+controller with the appropriate feedforward model for DC Motors. You may not wish to install the
+entire Road Runner library just for this controller. Feel free to replace the controller with one of
+equivalent functionality. 
 
-If you are starting from scratch, just download or clone this repo. However, if you would like to
-integrate this with an existing project, please follow the installation instructions located on [the FTC Dashboard installation page](https://acmerobotics.github.io/ftc-dashboard/gettingstarted)
-You can ignore the "Advanced" and "Development" section of the installation guide.
+If you are starting from scratch, just download or clone this repo. You need not go through the
+following steps.
 
-Then, copy over the [teamcode/VeloPIDTuner.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/VeloPIDTuner.java)
-file provided into your own `Teamcode` folder
+In your `FtcRobotController/build.release.gradle` file, insert the following: `implementation 'com.acmerobotics.dashboard:dashboard:0.3.10'`
+
+Your file should look something like this:
+
+```groovy
+/* FtcRobotController/build.release.gradle */ 
+
+dependencies {
+    implementation 'org.firstinspires.ftc:Inspection:6.1.1'
+    implementation 'org.firstinspires.ftc:Blocks:6.1.1'
+    implementation 'org.firstinspires.ftc:RobotCore:6.1.1'
+    implementation 'org.firstinspires.ftc:RobotServer:6.1.1'
+    implementation 'org.firstinspires.ftc:OnBotJava:6.1.1'
+    implementation 'org.firstinspires.ftc:Hardware:6.1.1'
+    implementation 'org.firstinspires.ftc:FtcCommon:6.1.1'
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+
+    implementation 'com.acmerobotics.dashboard:dashboard:0.3.10'
+}
+```
+
+Then, in your `TeamCode/build.release.gradle` file, insert the following:
+
+```groovy
+implementation 'com.acmerobotics.roadrunner:core:0.5.3'
+implementation 'com.acmerobotics.dashboard:dashboard:0.3.10'
+implementation "com.noahbres.jotai:jotai:1.0.2"
+```
+
+Your file should look something like this:
+
+```groovy
+/* TeamCode/build.release.gradle */ 
+
+dependencies {
+    implementation 'org.firstinspires.ftc:Inspection:6.1.1'
+    implementation 'org.firstinspires.ftc:Blocks:6.1.1'
+    implementation 'org.firstinspires.ftc:RobotCore:6.1.1'
+    implementation 'org.firstinspires.ftc:RobotServer:6.1.1'
+    implementation 'org.firstinspires.ftc:OnBotJava:6.1.1'
+    implementation 'org.firstinspires.ftc:Hardware:6.1.1'
+    implementation 'org.firstinspires.ftc:FtcCommon:6.1.1'
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+
+    implementation 'org.apache.commons:commons-math3:3.6.1'
+    
+    implementation 'com.acmerobotics.roadrunner:core:0.5.3'
+    
+    implementation 'com.acmerobotics.dashboard:dashboard:0.3.10'
+    
+    implementation "com.noahbres.jotai:jotai:1.0.2"
+}
+```
+
+To enable FTC Dashboard, you must copy paste the `FtcRobotControllerActivity.java` file from
+[https://github.com/acmerobotics/ftc-dashboard/blob/master/FtcRobotController/src/main/java/org/firstinspires/ftc/robotcontroller/internal/FtcRobotControllerActivity.java](https://github.com/acmerobotics/ftc-dashboard/blob/master/FtcRobotController/src/main/java/org/firstinspires/ftc/robotcontroller/internal/FtcRobotControllerActivity.java)
+into your own project. The file will be located under `FtcRobotController/src/main/java/org/firstinspires/ftc/robotcontroller/internal/`.
+Alternatively, follow the [official FTC Dashboard instructions](https://acmerobotics.github.io/ftc-dashboard/gettingstarted).
+
+If you're using the built-in PID, copy over the following files into your own `TeamCode` folder:
+    - [VeloPIDTuner.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/VeloPIDTuner.java)
+    - [TuningController.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/TuningController.java)
+
+If you're using two mechanically linked motors, copy over the following files into your own
+`TeamCode` folder:
+    - [LinkedMotorTuner.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/LinkedMotorTuner.java)
+    - [TuningController.java](TeamCode/src/main/java/org/firstinspires/ftc/teamcode/TuningController.java)
 
 ## Instructions
 
