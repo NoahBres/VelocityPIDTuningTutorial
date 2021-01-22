@@ -43,7 +43,7 @@ public class LinkedMotorTuner extends LinearOpMode {
             module.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
         }
 
-        PIDFController veloController = new PIDFController(MOTOR_VELO_PID, kV, kA, kStatic);
+        VelocityPIDFController veloController = new VelocityPIDFController(MOTOR_VELO_PID, kV, kA, kStatic);
         TuningController tuningController = new TuningController();
 
         double lastTargetVelo = 0.0;
@@ -67,7 +67,6 @@ public class LinkedMotorTuner extends LinearOpMode {
         while (!isStopRequested() && opModeIsActive()) {
             double targetVelo = tuningController.update();
 
-            veloController.setTargetPosition(targetVelo);
             veloController.setTargetVelocity(targetVelo);
             veloController.setTargetAcceleration((targetVelo - lastTargetVelo) / veloTimer.seconds());
             veloTimer.reset();
@@ -76,9 +75,10 @@ public class LinkedMotorTuner extends LinearOpMode {
 
             telemetry.addData("targetVelocity", targetVelo);
 
+            double motorPos = myMotor1.getCurrentPosition();
             double motorVelo = myMotor1.getVelocity();
 
-            double power = veloController.update(motorVelo);
+            double power = veloController.update(motorPos, motorVelo);
             myMotor1.setPower(power);
             myMotor2.setPower(power);
 
@@ -87,7 +87,7 @@ public class LinkedMotorTuner extends LinearOpMode {
                 lastKa = kA;
                 lastKstatic = kStatic;
 
-                veloController = new PIDFController(MOTOR_VELO_PID, kV, kA, kStatic);
+                veloController = new VelocityPIDFController(MOTOR_VELO_PID, kV, kA, kStatic);
             }
 
             telemetry.addData("velocity", motorVelo);

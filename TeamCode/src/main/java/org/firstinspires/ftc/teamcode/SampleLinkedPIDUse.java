@@ -27,7 +27,7 @@ public class SampleLinkedPIDUse extends LinearOpMode {
     private double lastTargetVelo = 0.0;
 
     // Our velocity controller
-    private final PIDFController veloController = new PIDFController(MOTOR_VELO_PID, kV, kA, kStatic);
+    private final VelocityPIDFController veloController = new VelocityPIDFController(MOTOR_VELO_PID, kV, kA, kStatic);
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -65,7 +65,6 @@ public class SampleLinkedPIDUse extends LinearOpMode {
             double targetVelo = 0.0;
 
             // Call necessary controller methods
-            veloController.setTargetPosition(targetVelo);
             veloController.setTargetVelocity(targetVelo);
             veloController.setTargetAcceleration((targetVelo - lastTargetVelo) / veloTimer.seconds());
             veloTimer.reset();
@@ -73,10 +72,11 @@ public class SampleLinkedPIDUse extends LinearOpMode {
             lastTargetVelo = targetVelo;
 
             // Get the velocity from the motor with the encoder
+            double motorPos = myMotor1.getCurrentPosition();
             double motorVelo = myMotor1.getVelocity();
 
             // Update the controller and set the power for each motor
-            double power = veloController.update(motorVelo);
+            double power = veloController.update(motorPos, motorVelo);
             myMotor1.setPower(power);
             myMotor2.setPower(power);
 
